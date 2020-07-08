@@ -2,7 +2,7 @@ function Invoke-Portscan
 {
 
     [CmdletBinding()]Param (
-        #Host, Ports
+
         [Parameter(ParameterSetName="cmdHosts",
 
                    ValueFromPipeline=$True,
@@ -33,7 +33,7 @@ function Invoke-Portscan
                    [Alias("xPorts")]
                    [String] $ExcludedPorts,
 
-        #Host Discovery
+
         [Parameter(Mandatory = $False)]
                    [Alias("Pn")]
                    [Switch] $SkipDiscovery,
@@ -46,7 +46,7 @@ function Invoke-Portscan
                    [Alias("PS")]
                    [string] $DiscoveryPorts = "-1,445,80,443",
 
-        #Timing and Performance
+
         [Parameter(Mandatory = $False)]
                    [int] $Threads = 100,
 
@@ -65,7 +65,7 @@ function Invoke-Portscan
         [Parameter(Mandatory = $False)]
                    [int] $T,
 
-        #Output
+
         [Parameter(Mandatory = $False)]
                    [Alias("oG")]
                    [String] $GrepOut,
@@ -93,8 +93,8 @@ function Invoke-Portscan
                    [Alias("F")]
                    [Switch] $ForceOverwrite
 
-        #TODO add script parameter
-        #TODO add resume parameter
+
+
     )
 
     PROCESS {
@@ -146,7 +146,7 @@ function Invoke-Portscan
                     [uint32]$startMask = ([System.math]::Pow(2, $maskPart)-1) * ([System.Math]::Pow(2,(32 - $maskPart)))
                     $startAddress = $startAddress -band $startMask
 
-                    #in powershell 2.0 there are 4 0 bytes padded, so the [0..3] is necessary
+
                     $startAddress = [System.BitConverter]::GetBytes($startaddress)[0..3]
                     [array]::Reverse($startaddress)
 
@@ -211,7 +211,7 @@ function Invoke-Portscan
                 [int] $numPorts
             )
 
-            #list of top 1000 ports from nmap from Jun 2013
+
             [int[]] $topPortList = @(80,23,443,21,3389,110,445,139,143,53,135,3306,8080,22
                         1723,111,995,993,5900,1025,1720,548,113,81,6001,179,1026,2000,8443,
                         8000,32768,554,26,1433,49152,2001,515,8008,49154,1027,5666,646,5000,
@@ -293,7 +293,7 @@ function Invoke-Portscan
             foreach ($pRange in $Ports.Split(","))
             {
 
-                #-1 is a special case for ping
+
                 if ($pRange -eq "-1")
                 {
                     $pList.Add([int]$pRange)
@@ -387,7 +387,7 @@ function Invoke-Portscan
                     $fPort = [string]::join(",", $filteredPorts.ToArray())
 
                     if ($grepStream) {
-                       #for grepstream use tabs - can be ugly, but easier for regex
+
                        if ($isUp -and !$SkipDiscovery) {
                             $grepStream.writeline("Host: $outhost`tStatus: Up")
                         }
@@ -477,7 +477,7 @@ function Invoke-Portscan
             }
         }
 
-        #function for Powershell v2.0 to work
+
         function Convert-SwitchtoBool
         {
             Param (
@@ -497,9 +497,9 @@ function Invoke-Portscan
             [bool] $quiet  = Convert-SwitchtoBool ($quiet)
             [bool] $ForceOverwrite  = Convert-SwitchtoBool ($ForceOverwrite)
 
-            #########
-            #parse arguments
-            #########
+
+
+
 
             [Environment]::CurrentDirectory=(Get-Location -PSProvider FileSystem).ProviderPath
 
@@ -538,7 +538,7 @@ function Invoke-Portscan
                 }
                 else
                 {
-                    #if the ports still aren't set, give the deftault, top 50 ports
+
                     Get-TopPort(50) | Out-Null
                 }
             }
@@ -605,16 +605,16 @@ function Invoke-Portscan
             $myInvocationLine = $PSCmdlet.MyInvocation.Line
             $startMsg = "Invoke-Portscan.ps1 v$version scan initiated $startdate as: $myInvocationLine"
 
-            #TODO deal with output
+
             Write-PortscanOut -comment $startMsg -grepStream $grepStream -xmlStream $xmlStream -readableStream $readableStream
 
-            #converting back from int array gives some argument error checking
+
             $sPortList = [string]::join(",", $portList)
             $sHostPortList = [string]::join(",", $hostPortList)
 
-            ########
-            #Port Scan Code - run on a per host basis
-            ########
+
+
+
             $portScanCode = {
                 param (
                     [Parameter( Mandatory = $True)] [string] $thost,
@@ -633,7 +633,7 @@ function Invoke-Portscan
                 $sockets = @{}
                 $timeouts = New-Object Hashtable
 
-                #set maximum $async threads
+
                 $fThreads = New-Object int
                 $aThreads = New-Object int
                 [System.Threading.ThreadPool]::GetMaxThreads([ref]$fThreads, [ref]$aThreads) | Out-Null
@@ -646,7 +646,7 @@ function Invoke-Portscan
                         [scriptblock]$Callback
                     )
 
-                    #taken from http://www.nivot.org/blog/post/2009/10/09/PowerShell20AsynchronousCallbacksFromNET
+
                     if (-not ("CallbackEventBridge" -as [type])) {
                         Add-Type @"
                             using System;
@@ -696,14 +696,14 @@ function Invoke-Portscan
 
                     }
                     catch {
-                        #we're assuming this is a host name
+
                         $sockets[$p] = new-object System.Net.Sockets.TcpClient
                     }
 
                     
                     $scriptBlockAsString = @"
 
-                        #somewhat of a race condition with the timeout, but I don't think it matters
+
                         if ( `$sockets[$p] -ne `$NULL)
                         {
                             if (!`$timeouts[$p].Disposed) {
@@ -713,12 +713,12 @@ function Invoke-Portscan
                             `$status = `$sockets[$p].Connected;
                             if (`$status -eq `$True)
                             {
-                                #write-host "$p is open"
+
                                 `$openPorts.Add($p)
                             }
                             else
                             {
-                                #write-host "$p is closed"
+
                                 `$closedPorts.Add($p)
 
                             }
@@ -728,7 +728,7 @@ function Invoke-Portscan
                         }
 "@
                     $timeoutCallback = @"
-                        #write-host "$p is filtered"
+
                         `$sockets[$p].Close()
                         if (!`$timeouts[$p].Disposed) {
                             `$timeouts[$p].Dispose()
@@ -758,7 +758,7 @@ function Invoke-Portscan
                     Try
                     {
 
-                        #ping
+
                         if ($hostPortList.Contains(-1))
                         {
                             $ping = new-object System.Net.NetworkInformation.Ping
@@ -836,8 +836,8 @@ function Invoke-Portscan
                 }
             }
 
-            # the outer loop is to flush the loop.
-            # Otherwise Get-Job | Wait-Job could clog, etc
+
+
 
             [int]$saveIteration = 0
             [int]$computersDone=0
